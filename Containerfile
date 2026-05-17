@@ -49,7 +49,6 @@ RUN rpm-ostree install \
 
 # ── User CLI tools ────────────────────────────────────────────────────────────
 RUN rpm-ostree install \
-    atuin \
     bat \
     btop \
     direnv \
@@ -62,6 +61,14 @@ RUN rpm-ostree install \
     starship \
     zoxide \
     && ostree container commit
+
+# atuin Fedora package omits daemon feature; install official musl binary
+RUN ATUIN_VERSION=$(curl -fsSL https://api.github.com/repos/atuinsh/atuin/releases/latest | grep '"tag_name"' | cut -d'"' -f4) && \
+    curl -fsSL "https://github.com/atuinsh/atuin/releases/download/${ATUIN_VERSION}/atuin-x86_64-unknown-linux-musl.tar.gz" \
+    | tar -xz -C /tmp && \
+    install -m 755 /tmp/atuin-x86_64-unknown-linux-musl/atuin /usr/bin/atuin && \
+    rm -rf /tmp/atuin-x86_64-unknown-linux-musl && \
+    ostree container commit
 
 # eza has no Fedora 43 RPM; install musl binary from GitHub releases
 RUN EZA_VERSION=$(curl -fsSL https://api.github.com/repos/eza-community/eza/releases/latest | grep '"tag_name"' | cut -d'"' -f4) && \

@@ -7,9 +7,9 @@ default:
 rebase:
     rpm-ostree rebase ostree-image-signed:docker://{{ IMAGE }}:latest
 
-# Rebase back to upstream bluefin-dx
+# Rebase back to upstream silverblue-main
 rebase-upstream:
-    rpm-ostree rebase ostree-image-signed:docker://ghcr.io/ublue-os/bluefin-dx:stable
+    rpm-ostree rebase ostree-image-signed:docker://ghcr.io/ublue-os/silverblue-main:stable
 
 # Build locally for testing (requires buildah)
 build:

@@ -1,4 +1,4 @@
-ARG BASE_IMAGE="ghcr.io/ublue-os/bluefin-dx"
+ARG BASE_IMAGE="ghcr.io/ublue-os/silverblue-main"
 ARG FEDORA_MAJOR_VERSION="43"
 
 FROM ${BASE_IMAGE}:${FEDORA_MAJOR_VERSION}
@@ -8,6 +8,7 @@ COPY config/files/etc/yum.repos.d/ /etc/yum.repos.d/
 COPY config/files/etc/pki/rpm-gpg/ /etc/pki/rpm-gpg/
 
 # ── Hyprland compositor stack ─────────────────────────────────────────────────
+# Podman + Buildah ship with silverblue-main; add the Hyprland desktop layer
 RUN rpm-ostree install \
     cava \
     dunst \
@@ -28,6 +29,7 @@ RUN rpm-ostree install \
 
 # ── CLI tooling ───────────────────────────────────────────────────────────────
 RUN rpm-ostree install \
+    just \
     zellij \
     task \
     && ostree container commit
@@ -36,7 +38,7 @@ RUN rpm-ostree install \
 RUN rpm-ostree install 1password-cli \
     && ostree container commit
 
-# ── Overlay files (configs, just recipes, systemd units) ──────────────────────
+# ── Overlay files ─────────────────────────────────────────────────────────────
 COPY config/files/usr/ /usr/
 
 RUN ostree container commit

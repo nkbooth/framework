@@ -1,6 +1,6 @@
 # framework
 
-Personal atomic Fedora image built on top of [bluefin-dx](https://github.com/ublue-os/bluefin).
+Personal atomic Fedora image built on top of [silverblue-main](https://github.com/ublue-os/main), with a full Hyprland compositor stack layered on.
 
 ## First-time setup
 

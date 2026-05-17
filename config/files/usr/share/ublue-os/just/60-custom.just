@@ -5,7 +5,7 @@
 rebase-framework:
     rpm-ostree rebase ostree-image-signed:docker://ghcr.io/nkbooth/framework:latest
 
-# Rebase to upstream bluefin-dx
+# Rebase to upstream silverblue-main
 [group('framework')]
 rebase-upstream:
-    rpm-ostree rebase ostree-image-signed:docker://ghcr.io/ublue-os/bluefin-dx:stable
+    rpm-ostree rebase ostree-image-signed:docker://ghcr.io/ublue-os/silverblue-main:stable

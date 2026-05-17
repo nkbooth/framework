@@ -9,8 +9,8 @@ COPY config/files/etc/yum.repos.d/ /etc/yum.repos.d/
 # solopasha/hyprland — hyprland, hyprpaper, swaylock-effects, waypaper, etc.
 # atim/starship + atim/gping — not in standard Fedora repos
 RUN source /etc/os-release && \
-    curl -fsSL -o /etc/yum.repos.d/solopasha-hyprland.repo \
-      "https://copr.fedorainfracloud.org/coprs/solopasha/hyprland/repo/fedora-${VERSION_ID}/solopasha-hyprland-fedora-${VERSION_ID}.repo" && \
+    curl -fsSL -o /etc/yum.repos.d/sdegler-hyprland.repo \
+      "https://copr.fedorainfracloud.org/coprs/sdegler/hyprland/repo/fedora-${VERSION_ID}/sdegler-hyprland-fedora-${VERSION_ID}.repo" && \
     curl -fsSL -o /etc/yum.repos.d/atim-starship.repo \
       "https://copr.fedorainfracloud.org/coprs/atim/starship/repo/fedora-${VERSION_ID}/atim-starship-fedora-${VERSION_ID}.repo" && \
     curl -fsSL -o /etc/yum.repos.d/atim-gping.repo \
@@ -84,6 +84,24 @@ RUN SUBTUI_VERSION=$(curl -fsSL https://api.github.com/repos/MattiaPun/SubTUI/re
     rpm-ostree install \
       "https://github.com/MattiaPun/SubTUI/releases/download/v${SUBTUI_VERSION}/SubTUI_${SUBTUI_VERSION}_linux_amd64.rpm" \
     && ostree container commit
+
+# ── Fonts ─────────────────────────────────────────────────────────────────────
+RUN rpm-ostree install \
+    adwaita-fonts-all \
+    liberation-fonts-all \
+    opendyslexic-fonts \
+    && ostree container commit
+
+# JetBrains Mono NF + Cascadia Code NF from nerd-fonts releases (NF builds are
+# supersets of the upstream fonts, so we skip the plain RPM packages)
+RUN NF_VERSION=$(curl -fsSL https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest | grep '"tag_name"' | cut -d'"' -f4) && \
+    mkdir -p /usr/share/fonts/nerd-fonts && \
+    curl -fsSL "https://github.com/ryanoasis/nerd-fonts/releases/download/${NF_VERSION}/JetBrainsMono.tar.xz" \
+      | tar -xJ -C /usr/share/fonts/nerd-fonts && \
+    curl -fsSL "https://github.com/ryanoasis/nerd-fonts/releases/download/${NF_VERSION}/CascadiaCode.tar.xz" \
+      | tar -xJ -C /usr/share/fonts/nerd-fonts && \
+    fc-cache -f && \
+    ostree container commit
 
 # ── 1Password CLI ─────────────────────────────────────────────────────────────
 RUN rpm-ostree install 1password-cli \

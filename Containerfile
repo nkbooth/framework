@@ -66,32 +66,28 @@ RUN rpm-ostree install \
     && ostree container commit
 
 # atuin Fedora package omits daemon feature; install official musl binary
-RUN ATUIN_VERSION=$(curl -fsSL https://api.github.com/repos/atuinsh/atuin/releases/latest | grep '"tag_name"' | cut -d'"' -f4) && \
-    curl -fsSL "https://github.com/atuinsh/atuin/releases/download/${ATUIN_VERSION}/atuin-x86_64-unknown-linux-musl.tar.gz" \
+RUN curl -fsSL "https://github.com/atuinsh/atuin/releases/latest/download/atuin-x86_64-unknown-linux-musl.tar.gz" \
     | tar -xz -C /tmp && \
     install -m 755 /tmp/atuin-x86_64-unknown-linux-musl/atuin /usr/bin/atuin && \
     rm -rf /tmp/atuin-x86_64-unknown-linux-musl && \
     ostree container commit
 
 # eza has no Fedora 43 RPM; install musl binary from GitHub releases
-RUN EZA_VERSION=$(curl -fsSL https://api.github.com/repos/eza-community/eza/releases/latest | grep '"tag_name"' | cut -d'"' -f4) && \
-    curl -fsSL "https://github.com/eza-community/eza/releases/download/${EZA_VERSION}/eza_x86_64-unknown-linux-musl.tar.gz" \
+RUN curl -fsSL "https://github.com/eza-community/eza/releases/latest/download/eza_x86_64-unknown-linux-musl.tar.gz" \
     | tar -xz -C /tmp && \
     install -m 755 /tmp/eza /usr/bin/eza && \
     rm /tmp/eza && \
     ostree container commit
 
 # zellij has no Fedora 43 RPM; install static musl binary from GitHub releases
-RUN ZELLIJ_VERSION=$(curl -fsSL https://api.github.com/repos/zellij-org/zellij/releases/latest | grep '"tag_name"' | cut -d'"' -f4) && \
-    curl -fsSL "https://github.com/zellij-org/zellij/releases/download/${ZELLIJ_VERSION}/zellij-x86_64-unknown-linux-musl.tar.gz" \
+RUN curl -fsSL "https://github.com/zellij-org/zellij/releases/latest/download/zellij-x86_64-unknown-linux-musl.tar.gz" \
     | tar -xz -C /tmp && \
     install -m 755 /tmp/zellij /usr/bin/zellij && \
     rm /tmp/zellij && \
     ostree container commit
 
 # neovim — install latest release tarball from GitHub (newer than Fedora RPM)
-RUN NVIM_VERSION=$(curl -fsSL https://api.github.com/repos/neovim/neovim/releases/latest | grep '"tag_name"' | cut -d'"' -f4) && \
-    curl -fsSL "https://github.com/neovim/neovim/releases/download/${NVIM_VERSION}/nvim-linux-x86_64.tar.gz" \
+RUN curl -fsSL "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz" \
     | tar -xz -C /tmp && \
     cp -r /tmp/nvim-linux-x86_64/* /usr/ && \
     rm -rf /tmp/nvim-linux-x86_64 && \
@@ -112,11 +108,10 @@ RUN rpm-ostree install \
 
 # JetBrains Mono NF + Cascadia Code NF from nerd-fonts releases (NF builds are
 # supersets of the upstream fonts, so we skip the plain RPM packages)
-RUN NF_VERSION=$(curl -fsSL https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest | grep '"tag_name"' | cut -d'"' -f4) && \
-    mkdir -p /usr/share/fonts/nerd-fonts && \
-    curl -fsSL "https://github.com/ryanoasis/nerd-fonts/releases/download/${NF_VERSION}/JetBrainsMono.tar.xz" \
+RUN mkdir -p /usr/share/fonts/nerd-fonts && \
+    curl -fsSL "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.tar.xz" \
       | tar -xJ -C /usr/share/fonts/nerd-fonts && \
-    curl -fsSL "https://github.com/ryanoasis/nerd-fonts/releases/download/${NF_VERSION}/CascadiaCode.tar.xz" \
+    curl -fsSL "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/CascadiaCode.tar.xz" \
       | tar -xJ -C /usr/share/fonts/nerd-fonts && \
     fc-cache -f && \
     ostree container commit

@@ -6,6 +6,12 @@ FROM ${BASE_IMAGE}:${FEDORA_MAJOR_VERSION}
 # ── Repos ─────────────────────────────────────────────────────────────────────
 COPY config/files/etc/yum.repos.d/ /etc/yum.repos.d/
 
+# solopasha/hyprland COPR — provides hyprland, hyprpaper, swaylock-effects, waypaper, etc.
+RUN source /etc/os-release && \
+    curl -fsSL -o /etc/yum.repos.d/solopasha-hyprland.repo \
+      "https://copr.fedorainfracloud.org/coprs/solopasha/hyprland/repo/fedora-${VERSION_ID}/solopasha-hyprland-fedora-${VERSION_ID}.repo" \
+    && ostree container commit
+
 # ── Hyprland compositor stack ─────────────────────────────────────────────────
 # Podman + Buildah ship with silverblue-main; add the Hyprland desktop layer
 RUN rpm-ostree install \

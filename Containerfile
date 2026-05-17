@@ -5,7 +5,6 @@ FROM ${BASE_IMAGE}:${FEDORA_MAJOR_VERSION}
 
 # ── Repos ─────────────────────────────────────────────────────────────────────
 COPY config/files/etc/yum.repos.d/ /etc/yum.repos.d/
-COPY config/files/etc/pki/rpm-gpg/ /etc/pki/rpm-gpg/
 
 # ── Hyprland compositor stack ─────────────────────────────────────────────────
 # Podman + Buildah ship with silverblue-main; add the Hyprland desktop layer

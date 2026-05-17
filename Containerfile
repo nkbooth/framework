@@ -14,7 +14,9 @@ RUN source /etc/os-release && \
     curl -fsSL -o /etc/yum.repos.d/atim-starship.repo \
       "https://copr.fedorainfracloud.org/coprs/atim/starship/repo/fedora-${VERSION_ID}/atim-starship-fedora-${VERSION_ID}.repo" && \
     curl -fsSL -o /etc/yum.repos.d/atim-gping.repo \
-      "https://copr.fedorainfracloud.org/coprs/atim/gping/repo/fedora-${VERSION_ID}/atim-gping-fedora-${VERSION_ID}.repo" \
+      "https://copr.fedorainfracloud.org/coprs/atim/gping/repo/fedora-${VERSION_ID}/atim-gping-fedora-${VERSION_ID}.repo" && \
+    curl -fsSL -o /etc/yum.repos.d/tailscale.repo \
+      "https://pkgs.tailscale.com/stable/fedora/tailscale.repo" \
     && ostree container commit
 
 # ── Hyprland compositor stack ─────────────────────────────────────────────────
@@ -49,6 +51,7 @@ RUN rpm-ostree install \
 
 # ── User CLI tools ────────────────────────────────────────────────────────────
 RUN rpm-ostree install \
+    aerc \
     bat \
     btop \
     direnv \
@@ -86,6 +89,14 @@ RUN ZELLIJ_VERSION=$(curl -fsSL https://api.github.com/repos/zellij-org/zellij/r
     rm /tmp/zellij && \
     ostree container commit
 
+# neovim — install latest release tarball from GitHub (newer than Fedora RPM)
+RUN NVIM_VERSION=$(curl -fsSL https://api.github.com/repos/neovim/neovim/releases/latest | grep '"tag_name"' | cut -d'"' -f4) && \
+    curl -fsSL "https://github.com/neovim/neovim/releases/download/${NVIM_VERSION}/nvim-linux-x86_64.tar.gz" \
+    | tar -xz -C /tmp && \
+    cp -r /tmp/nvim-linux-x86_64/* /usr/ && \
+    rm -rf /tmp/nvim-linux-x86_64 && \
+    ostree container commit
+
 # SubTUI — music player TUI; installed from GitHub RPM release
 RUN SUBTUI_VERSION=$(curl -fsSL https://api.github.com/repos/MattiaPun/SubTUI/releases/latest | grep '"tag_name"' | cut -d'"' -f4 | tr -d 'v') && \
     rpm-ostree install \
@@ -110,11 +121,16 @@ RUN NF_VERSION=$(curl -fsSL https://api.github.com/repos/ryanoasis/nerd-fonts/re
     fc-cache -f && \
     ostree container commit
 
+# ── Tailscale ─────────────────────────────────────────────────────────────────
+RUN rpm-ostree install tailscale \
+    && ostree container commit
+
 # ── 1Password CLI ─────────────────────────────────────────────────────────────
 RUN rpm-ostree install 1password-cli \
     && ostree container commit
 
 # ── Overlay files ─────────────────────────────────────────────────────────────
+COPY config/files/etc/ /etc/
 COPY config/files/usr/ /usr/
 
 RUN ostree container commit

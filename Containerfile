@@ -20,7 +20,7 @@ RUN source /etc/os-release && \
     && ostree container commit
 
 # ── Hyprland compositor stack ─────────────────────────────────────────────────
-# Podman + Buildah ship with silverblue-main; add the Hyprland desktop layer
+# Podman + Buildah ship with silverblue-main; podman-docker adds the docker shim. Add the Hyprland desktop layer
 # --setopt=install_weak_deps=False drops recommended-but-not-required packages
 # (kitty, nwg-panel, wofi, etc.) that hyprland and waybar suggest but we don't use.
 # hyprpwcenter is dropped entirely — its COPR package incorrectly lists build-time
@@ -46,6 +46,7 @@ RUN rpm-ostree install \
 # ── CLI tooling ───────────────────────────────────────────────────────────────
 RUN rpm-ostree install \
     just \
+    podman-docker \
     task \
     && ostree container commit
 

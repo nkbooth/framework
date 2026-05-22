@@ -1,0 +1,4 @@
+enable virtqemud.socket
+enable virtnetworkd.socket
+enable virtnodedevd.socket
+enable virtstoraged.socket

@@ -125,6 +125,16 @@ RUN rpm-ostree install tailscale \
 RUN rpm-ostree install 1password-cli \
     && ostree container commit
 
+# ── Virtualization ────────────────────────────────────────────────────────────
+# libvirt-daemon-driver-qemu provides virtqemud (modular daemon replaces libvirtd)
+# libvirt-daemon-config-network provides the default NAT network
+# qemu-kvm-core is the minimal KVM-enabled QEMU binary
+RUN rpm-ostree install \
+    libvirt-daemon-config-network \
+    libvirt-daemon-driver-qemu \
+    qemu-kvm-core \
+    && ostree container commit
+
 # ── Overlay files ─────────────────────────────────────────────────────────────
 COPY config/files/etc/ /etc/
 COPY config/files/usr/ /usr/

@@ -132,7 +132,7 @@ RUN rpm-ostree install 1password-cli \
 RUN rpm-ostree install \
     libvirt-daemon-config-network \
     libvirt-daemon-driver-qemu \
-    qemu-kvm-core \
+    qemu-kvm \
     && ostree container commit
 
 # ── Overlay files ─────────────────────────────────────────────────────────────

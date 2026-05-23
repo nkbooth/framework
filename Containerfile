@@ -44,7 +44,10 @@ RUN rpm-ostree install \
     && ostree container commit
 
 # ── CLI tooling ───────────────────────────────────────────────────────────────
+# gcc + binutils needed for nvim-treesitter to compile parsers at runtime
 RUN rpm-ostree install \
+    binutils \
+    gcc \
     just \
     podman-docker \
     task \

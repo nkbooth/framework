@@ -6,7 +6,7 @@ FROM ${BASE_IMAGE}:${FEDORA_MAJOR_VERSION}
 # ── Repos ─────────────────────────────────────────────────────────────────────
 COPY config/files/etc/yum.repos.d/ /etc/yum.repos.d/
 
-# solopasha/hyprland — hyprland, hyprpaper, swaylock-effects, waypaper, etc.
+# sdegler/hyprland — hyprland, eww-git, hyprpaper, swaylock-effects, waypaper, etc.
 # atim/starship + atim/gping — not in standard Fedora repos
 RUN source /etc/os-release && \
     curl -fsSL -o /etc/yum.repos.d/sdegler-hyprland.repo \
@@ -30,6 +30,7 @@ RUN echo 'install_weak_deps=False' >> /etc/dnf/dnf.conf
 RUN rpm-ostree install \
     cava \
     dunst \
+    eww-git \
     hyprland \
     hyprland-contrib \
     hyprpaper \

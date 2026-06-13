@@ -27,6 +27,10 @@ RUN source /etc/os-release && \
 # deps (cmake, gcc-c++) as runtime requirements, pulling in the full compiler toolchain.
 RUN echo 'install_weak_deps=False' >> /etc/dnf/dnf.conf
 
+# Sync base image packages with current repos before layering; rpm-ostree in
+# container build mode cannot upgrade @System packages, but dnf can.
+RUN dnf upgrade -y && dnf clean all && ostree container commit
+
 RUN rpm-ostree install \
     cava \
     dunst \

@@ -125,8 +125,10 @@ RUN mkdir -p /usr/share/fonts/nerd-fonts && \
 RUN rpm-ostree install tailscale \
     && ostree container commit
 
-# ── 1Password CLI ─────────────────────────────────────────────────────────────
-RUN rpm-ostree install 1password-cli \
+# ── 1Password ─────────────────────────────────────────────────────────────────
+RUN rpm-ostree install \
+    1password \
+    1password-cli \
     && ostree container commit
 
 # ── Virtualization ────────────────────────────────────────────────────────────

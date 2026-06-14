@@ -148,6 +148,7 @@ RUN rpm --import https://downloads.1password.com/linux/keys/1password.asc && \
     mkdir -p /usr/lib/opt && \
     cp -a /tmp/1pw/opt/1Password /usr/lib/opt/1Password && \
     rm -rf /tmp/1pw /tmp/1password.rpm && \
+    mkdir -p /var/opt && \
     ln -sf ../../usr/lib/opt/1Password /var/opt/1Password && \
     groupadd --system onepassword && \
     groupadd --system onepassword-mcp && \

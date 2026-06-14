@@ -130,10 +130,28 @@ RUN rpm-ostree install tailscale \
     && ostree container commit
 
 # ── 1Password ─────────────────────────────────────────────────────────────────
-RUN rpm-ostree install \
-    1password \
-    1password-cli \
-    && ostree container commit
+# 1password-cli: safe to install via rpm-ostree (post-install only does chmod g+s).
+# 1password desktop: its post-install runs chmod 4755 on chrome-sandbox, which
+# fails inside rpm-ostree's transaction subprocess on CI runners regardless of
+# capability flags. Install via rpm --noscripts instead, then manually run the
+# safe setup steps. chrome-sandbox setuid is attempted; if it fails here it will
+# succeed on the deployed system where real root is available.
+RUN rpm-ostree install 1password-cli && \
+    curl -fsSL -o /tmp/1password.rpm \
+      https://downloads.1password.com/linux/rpm/stable/x86_64/1password-latest.rpm && \
+    rpm --import https://downloads.1password.com/linux/keys/1password.asc && \
+    rpm -ivh --noscripts /tmp/1password.rpm && \
+    rm /tmp/1password.rpm && \
+    cd /opt/1Password && \
+    groupadd --system onepassword && \
+    groupadd --system onepassword-mcp && \
+    chgrp onepassword 1Password-BrowserSupport && \
+    chmod g+s 1Password-BrowserSupport && \
+    { [ -f onepassword-mcp ] && chgrp onepassword-mcp onepassword-mcp && chmod g+s onepassword-mcp; } || true && \
+    install -Dm0644 resources/custom_allowed_browsers -t /etc/1password/ && \
+    ln -sf /opt/1Password/1password /usr/bin/1password && \
+    chmod 4755 chrome-sandbox || true && \
+    ostree container commit
 
 # ── Virtualization ────────────────────────────────────────────────────────────
 # libvirt-daemon-driver-qemu provides virtqemud (modular daemon replaces libvirtd)

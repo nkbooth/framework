@@ -51,7 +51,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           oci: true
-          extra-args: --privileged
+          extra-args: --cap-add ALL --security-opt seccomp=unconfined
 
       - name: Push to ghcr.io
         id: push

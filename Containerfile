@@ -4,8 +4,6 @@ ARG FEDORA_MAJOR_VERSION="44"
 FROM ${BASE_IMAGE}:${FEDORA_MAJOR_VERSION}
 
 # ── Repos ─────────────────────────────────────────────────────────────────────
-COPY config/files/etc/yum.repos.d/ /etc/yum.repos.d/
-
 # sdegler/hyprland — hyprland, eww-git, hyprpaper, swaylock-effects, waypaper, etc.
 # atim/starship + atim/gping — not in standard Fedora repos
 RUN source /etc/os-release && \

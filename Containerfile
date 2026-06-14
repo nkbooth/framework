@@ -133,8 +133,8 @@ RUN rpm-ostree install tailscale \
 # layer, which causes every rpm/dnf5 install to fail with cpio EEXIST. Extract
 # the RPM to a temp dir instead, then place files in /usr/lib/opt/1Password
 # (ostree read-only layer — updates on rebase, same pattern as forticlient/google
-# on this system). /var/opt/1Password → ../../usr/lib/opt/1Password completes
-# the /opt/1Password chain at runtime.
+# on this system). /var/opt/1Password → /usr/lib/opt/1Password is created at boot
+# by tmpfiles.d/1password-opt.conf (can't rely on image /var for existing systems).
 RUN rpm --import https://downloads.1password.com/linux/keys/1password.asc && \
     printf '[1password]\nname=1Password Stable Channel\nbaseurl=https://downloads.1password.com/linux/rpm/stable/x86_64\nenabled=1\ngpgcheck=1\nrepo_gpgcheck=1\ngpgkey=https://downloads.1password.com/linux/keys/1password.asc\n' \
       > /etc/yum.repos.d/1password.repo && \
@@ -148,8 +148,6 @@ RUN rpm --import https://downloads.1password.com/linux/keys/1password.asc && \
     mkdir -p /usr/lib/opt && \
     cp -a /tmp/1pw/opt/1Password /usr/lib/opt/1Password && \
     rm -rf /tmp/1pw /tmp/1password.rpm && \
-    mkdir -p /var/opt && \
-    ln -sf ../../usr/lib/opt/1Password /var/opt/1Password && \
     groupadd --system onepassword && \
     groupadd --system onepassword-mcp && \
     chgrp onepassword /usr/lib/opt/1Password/1Password-BrowserSupport && \

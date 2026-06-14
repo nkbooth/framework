@@ -129,14 +129,16 @@ RUN mkdir -p /usr/share/fonts/nerd-fonts && \
 RUN rpm-ostree install tailscale \
     && ostree container commit
 
-# ── 1Password ─────────────────────────────────────────────────────────────────
-# rpm-ostree's bwrap transaction blocks chrome-sandbox setuid in CI.
-# dnf5 installs the desktop app directly so its post-install runs as real root.
-# optfix: /opt is read-only at runtime in ostree; move files to /var/opt and
-# symlink back so they survive across deployments in the mutable /var layer.
-# Repo file is removed post-install — repos don't work at runtime in ostree.
-RUN rpm-ostree install 1password-cli && \
-    dnf5 install -y 1password && \
+# ── 1Password desktop ─────────────────────────────────────────────────────────
+# Repo created inline and deleted post-install (repos don't work at ostree runtime).
+# dnf5 bypasses rpm-ostree's bwrap which blocks chrome-sandbox setuid in CI.
+# optfix: /opt is read-only at ostree runtime; files live in /var/opt with a
+# symlink from /opt so they persist across deployments in the mutable /var layer.
+# Both desktop app and CLI (op) installed together from the official repo.
+RUN rpm --import https://downloads.1password.com/linux/keys/1password.asc && \
+    printf '[1password]\nname=1Password Stable Channel\nbaseurl=https://downloads.1password.com/linux/rpm/stable/x86_64\nenabled=1\ngpgcheck=1\nrepo_gpgcheck=1\ngpgkey=https://downloads.1password.com/linux/keys/1password.asc\n' \
+      > /etc/yum.repos.d/1password.repo && \
+    dnf5 install -y 1password 1password-cli && \
     rm -f /etc/yum.repos.d/1password.repo && \
     mkdir -p /var/opt && \
     mv /opt/1Password /var/opt/1Password && \

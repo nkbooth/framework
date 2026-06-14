@@ -130,13 +130,18 @@ RUN rpm-ostree install tailscale \
     && ostree container commit
 
 # ── 1Password ─────────────────────────────────────────────────────────────────
-# rpm-ostree handles /opt correctly; chrome-sandbox setuid fails in CI but is
-# non-fatal at runtime — Electron falls back gracefully without it.
-RUN rpm-ostree install \
-    1password \
-    1password-cli \
-    && chmod 4755 /opt/1Password/chrome-sandbox || true \
-    && ostree container commit
+# rpm-ostree's bwrap transaction blocks chrome-sandbox setuid in CI.
+# dnf5 installs the desktop app directly so its post-install runs as real root.
+# optfix: /opt is read-only at runtime in ostree; move files to /var/opt and
+# symlink back so they survive across deployments in the mutable /var layer.
+# Repo file is removed post-install — repos don't work at runtime in ostree.
+RUN rpm-ostree install 1password-cli && \
+    dnf5 install -y 1password && \
+    rm -f /etc/yum.repos.d/1password.repo && \
+    mkdir -p /var/opt && \
+    mv /opt/1Password /var/opt/1Password && \
+    ln -sf /var/opt/1Password /opt/1Password && \
+    ostree container commit
 
 # ── Virtualization ────────────────────────────────────────────────────────────
 # libvirt-daemon-driver-qemu provides virtqemud (modular daemon replaces libvirtd)

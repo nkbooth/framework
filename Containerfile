@@ -127,21 +127,35 @@ RUN mkdir -p /usr/share/fonts/nerd-fonts && \
 RUN rpm-ostree install tailscale \
     && ostree container commit
 
-# ── 1Password desktop ─────────────────────────────────────────────────────────
-# Repo created inline and deleted post-install (repos don't work at ostree runtime).
-# dnf5 bypasses rpm-ostree's bwrap which blocks chrome-sandbox setuid in CI.
-# optfix: /opt is read-only at ostree runtime; files live in /var/opt with a
-# symlink from /opt so they persist across deployments in the mutable /var layer.
-# Both desktop app and CLI (op) installed together from the official repo.
-RUN rpm --import https://downloads.1password.com/linux/keys/1password.asc && \
-    printf '[1password]\nname=1Password Stable Channel\nbaseurl=https://downloads.1password.com/linux/rpm/stable/x86_64\nenabled=1\ngpgcheck=1\nrepo_gpgcheck=1\ngpgkey=https://downloads.1password.com/linux/keys/1password.asc\n' \
-      > /etc/yum.repos.d/1password.repo && \
-    rm -rf /opt/1Password /var/opt/1Password && \
-    dnf5 install -y 1password 1password-cli && \
-    rm -f /etc/yum.repos.d/1password.repo && \
-    mkdir -p /var/opt && \
-    mv /opt/1Password /var/opt/1Password && \
-    ln -sf /var/opt/1Password /opt/1Password && \
+# ── 1Password ─────────────────────────────────────────────────────────────────
+# CLI: rpm-ostree, straightforward.
+# Desktop: /opt is a read-only symlink (→ var/opt) in the base image's overlayfs
+# layer, which causes every rpm/dnf5 install to fail with cpio EEXIST. Extract
+# the RPM to a temp dir instead, then place files in /usr/lib/opt/1Password
+# (ostree read-only layer — updates on rebase, same pattern as forticlient/google
+# on this system). /var/opt/1Password → ../../usr/lib/opt/1Password completes
+# the /opt/1Password chain at runtime.
+RUN rpm-ostree install 1password-cli && \
+    curl -fsSL -o /tmp/1password.rpm \
+      https://downloads.1password.com/linux/rpm/stable/x86_64/1password-latest.rpm && \
+    mkdir /tmp/1pw && \
+    (cd /tmp/1pw && rpm2cpio /tmp/1password.rpm | cpio -idm 2>/dev/null) && \
+    cp -a /tmp/1pw/usr/. /usr/ && \
+    mkdir -p /usr/lib/opt && \
+    cp -a /tmp/1pw/opt/1Password /usr/lib/opt/1Password && \
+    rm -rf /tmp/1pw /tmp/1password.rpm && \
+    ln -sf ../../usr/lib/opt/1Password /var/opt/1Password && \
+    groupadd --system onepassword && \
+    groupadd --system onepassword-mcp && \
+    chgrp onepassword /usr/lib/opt/1Password/1Password-BrowserSupport && \
+    chmod g+s /usr/lib/opt/1Password/1Password-BrowserSupport && \
+    { [ -f /usr/lib/opt/1Password/onepassword-mcp ] && \
+      chgrp onepassword-mcp /usr/lib/opt/1Password/onepassword-mcp && \
+      chmod g+s /usr/lib/opt/1Password/onepassword-mcp; } || true && \
+    install -Dm0644 /usr/lib/opt/1Password/resources/custom_allowed_browsers \
+      -t /etc/1password/ && \
+    ln -sf /usr/lib/opt/1Password/1password /usr/bin/1password && \
+    chmod 4755 /usr/lib/opt/1Password/chrome-sandbox || true && \
     ostree container commit
 
 # ── Virtualization ────────────────────────────────────────────────────────────

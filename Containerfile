@@ -136,7 +136,7 @@ RUN rpm-ostree install tailscale \
 RUN rpm --import https://downloads.1password.com/linux/keys/1password.asc && \
     printf '[1password]\nname=1Password Stable Channel\nbaseurl=https://downloads.1password.com/linux/rpm/stable/x86_64\nenabled=1\ngpgcheck=1\nrepo_gpgcheck=1\ngpgkey=https://downloads.1password.com/linux/keys/1password.asc\n' \
       > /etc/yum.repos.d/1password.repo && \
-    rm -rf /var/opt/1Password && \
+    rm -rf /opt/1Password /var/opt/1Password && \
     dnf5 install -y 1password 1password-cli && \
     rm -f /etc/yum.repos.d/1password.repo && \
     mkdir -p /var/opt && \

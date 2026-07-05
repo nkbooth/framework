@@ -171,6 +171,17 @@ RUN rpm-ostree install \
     qemu-kvm \
     && ostree container commit
 
+# ── v4l2loopback (virtual camera) ─────────────────────────────────────────────
+# Out-of-tree kmod: pulled prebuilt+signed from ublue akmods (main-44 tracks the
+# silverblue-main:44 kernel). ublue-os-akmods-addons (signing key/repos) already
+# ships in the base image, so we install only the kmod and its -common sibling.
+COPY --from=ghcr.io/ublue-os/akmods:main-44 /rpms/ /tmp/akmods-rpms/
+RUN rpm-ostree install \
+      /tmp/akmods-rpms/kmods/kmod-v4l2loopback*.rpm \
+      /tmp/akmods-rpms/common/v4l2loopback-*.rpm && \
+    rm -rf /tmp/akmods-rpms && \
+    ostree container commit
+
 # ── Overlay files ─────────────────────────────────────────────────────────────
 COPY config/files/etc/ /etc/
 COPY config/files/usr/ /usr/

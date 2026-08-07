@@ -46,6 +46,12 @@ RUN rpm-ostree install \
     waypaper \
     && ostree container commit
 
+# ── River compositor (evaluation) ────────────────────────────────────────────
+# Mainline Fedora package — no COPR needed. Alternative wlroots compositor,
+# evaluated alongside the Hyprland stack above.
+RUN rpm-ostree install river \
+    && ostree container commit
+
 # ── CLI tooling ───────────────────────────────────────────────────────────────
 # gcc + binutils needed for nvim-treesitter to compile parsers at runtime
 RUN rpm-ostree install \

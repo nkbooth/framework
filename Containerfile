@@ -27,10 +27,7 @@ RUN echo 'install_weak_deps=False' >> /etc/dnf/dnf.conf
 
 # Sync base image packages with current repos before layering; rpm-ostree in
 # container build mode cannot upgrade @System packages, but dnf can.
-# TEMPORARY (revert before the next scheduled run): kernel excluded because
-# ghcr.io/ublue-os/akmods:main-44 hasn't rebuilt for the current kernel yet,
-# so upgrading it here breaks the v4l2loopback kmod install below.
-RUN dnf upgrade -y --exclude='kernel*' && dnf clean all && ostree container commit
+RUN dnf upgrade -y && dnf clean all && ostree container commit
 
 RUN rpm-ostree install \
     cava \

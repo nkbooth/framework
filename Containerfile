@@ -47,9 +47,12 @@ RUN rpm-ostree install \
     && ostree container commit
 
 # ── River compositor (evaluation) ────────────────────────────────────────────
-# Mainline Fedora package — no COPR needed. Alternative wlroots compositor,
-# evaluated alongside the Hyprland stack above.
-RUN rpm-ostree install river \
+# Mainline Fedora packages — no COPR needed. Alternative wlroots compositor,
+# evaluated alongside the Hyprland stack above. River ships no launcher of its
+# own, so fuzzel comes along here rather than in the Hyprland stack.
+RUN rpm-ostree install \
+    fuzzel \
+    river \
     && ostree container commit
 
 # ── CLI tooling ───────────────────────────────────────────────────────────────

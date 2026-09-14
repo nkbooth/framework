@@ -50,9 +50,12 @@ RUN rpm-ostree install \
 # Mainline Fedora packages — no COPR needed. Alternative wlroots compositor,
 # evaluated alongside the Hyprland stack above. River ships no launcher of its
 # own, so fuzzel comes along here rather than in the Hyprland stack.
+# xdg-desktop-portal-wlr backs ScreenCast/Screenshot under river; the hyprland
+# portal in the block above needs Hyprland's IPC and cannot serve river.
 RUN rpm-ostree install \
     fuzzel \
     river \
+    xdg-desktop-portal-wlr \
     && ostree container commit
 
 # ── CLI tooling ───────────────────────────────────────────────────────────────

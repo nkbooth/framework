@@ -71,6 +71,13 @@ RUN rpm-ostree install \
     task \
     && ostree container commit
 
+# ── AppImage support ──────────────────────────────────────────────────────────
+# electron-builder AppImages (e.g. NEO) still use the legacy runtime that
+# dlopen()s libfuse.so.2; the base image only ships FUSE 3.
+RUN rpm-ostree install \
+    fuse-libs \
+    && ostree container commit
+
 # ── User CLI tools ────────────────────────────────────────────────────────────
 RUN rpm-ostree install \
     aerc \

@@ -89,8 +89,10 @@ RUN rpm-ostree install \
     git-delta \
     glab \
     gping \
+    mpv \
     ShellCheck \
     starship \
+    yt-dlp \
     zoxide \
     && ostree container commit
 
@@ -113,6 +115,13 @@ RUN curl -fsSL "https://github.com/zellij-org/zellij/releases/latest/download/ze
     | tar -xz -C /tmp && \
     install -m 755 /tmp/zellij /usr/bin/zellij && \
     rm /tmp/zellij && \
+    ostree container commit
+
+# taskwarrior-tui has no Fedora RPM; install static musl binary from GitHub releases
+RUN curl -fsSL "https://github.com/kdheepak/taskwarrior-tui/releases/latest/download/taskwarrior-tui-x86_64-unknown-linux-musl.tar.gz" \
+    | tar -xz -C /tmp && \
+    install -m 755 /tmp/taskwarrior-tui /usr/bin/taskwarrior-tui && \
+    rm /tmp/taskwarrior-tui && \
     ostree container commit
 
 # neovim — install latest release tarball from GitHub (newer than Fedora RPM)

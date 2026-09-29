@@ -1,0 +1,13 @@
+# AnyTone AT-D878UVII Plus and the AIOC cable.
+#
+# The radio's USB device lives inside the radio (a GD32 virtual COM port) and
+# re-enumerates on every power cycle and mode change — normal, firmware update,
+# and SCT baseband flash modes each produce a fresh /dev/bus/usb node owned
+# root:root. Without this, any user-owned process (session-mode virt-manager,
+# SPICE USB redirection) fails with a permission error on each new node.
+#
+# uaccess grants an ACL to the locally logged-in user via systemd-logind, so it
+# reapplies automatically on every re-enumeration. This is about the USB device
+# node; 99-ttyacm-permissions.rules covers the tty node and does not help here.
+SUBSYSTEM=="usb", ATTR{idVendor}=="28e9", ATTR{idProduct}=="018a", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="1209", ATTR{idProduct}=="7388", TAG+="uaccess"

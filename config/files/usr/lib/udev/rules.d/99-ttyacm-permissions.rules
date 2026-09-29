@@ -1,0 +1,1 @@
+KERNEL=="ttyACM*", SUBSYSTEM=="tty", MODE="0666"

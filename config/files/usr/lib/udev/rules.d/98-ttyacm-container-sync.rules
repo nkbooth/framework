@@ -1,0 +1,10 @@
+# Sync Seeed XIAO nRF52840 (VID 239a) back into the meshtastic firmware
+# devcontainer after a DFU disconnect/reconnect cycle.
+#
+# adafruit-nrfutil sends a 1200 bps touch to enter the Adafruit DFU bootloader,
+# which causes the device to re-enumerate. The container's /dev/ttyACM0 bind mount
+# becomes stale. This rule fires on every ttyACM "add" for this vendor and calls
+# the sync script to tear down the stale bind and re-expose the device.
+#
+# Both normal-firmware mode and DFU-bootloader mode use VID=239a.
+KERNEL=="ttyACM*", SUBSYSTEM=="tty", ACTION=="add", ATTRS{idVendor}=="239a", RUN+="/usr/libexec/meshtastic-hrv-sync-dev.sh %k"

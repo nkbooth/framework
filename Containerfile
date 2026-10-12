@@ -137,6 +137,20 @@ RUN SUBTUI_VERSION=$(curl -fsSL https://api.github.com/repos/MattiaPun/SubTUI/re
       "https://github.com/MattiaPun/SubTUI/releases/download/v${SUBTUI_VERSION}/SubTUI_${SUBTUI_VERSION}_linux_amd64.rpm" \
     && ostree container commit
 
+# yubikey-touch-detector — desktop notification when the YubiKey blinks for a
+# touch (gpg sign/decrypt, ssh, u2f); no Fedora RPM. Pinned rather than latest:
+# the upstream binary links libgpgme.so.11, which Fedora 44 only ships via
+# compat-gpgme124, so a new release could change the soname under us.
+RUN YTD_VERSION=1.15.0 && \
+    rpm-ostree install compat-gpgme124 && \
+    cd /tmp && \
+    curl -fsSLO "https://github.com/maximbaz/yubikey-touch-detector/releases/download/${YTD_VERSION}/yubikey-touch-detector-x86_64-linux-gnu" && \
+    curl -fsSLO "https://github.com/maximbaz/yubikey-touch-detector/releases/download/${YTD_VERSION}/SHA256SUMS" && \
+    grep ' yubikey-touch-detector-x86_64-linux-gnu$' SHA256SUMS | sha256sum -c - && \
+    install -m 755 yubikey-touch-detector-x86_64-linux-gnu /usr/bin/yubikey-touch-detector && \
+    rm yubikey-touch-detector-x86_64-linux-gnu SHA256SUMS && \
+    ostree container commit
+
 # ── Fonts ─────────────────────────────────────────────────────────────────────
 RUN rpm-ostree install \
     adwaita-fonts-all \
@@ -217,4 +231,5 @@ RUN rpm-ostree install \
 COPY config/files/etc/ /etc/
 COPY config/files/usr/ /usr/
 
-RUN ostree container commit
+RUN systemctl --global enable yubikey-touch-detector.service && \
+    ostree container commit

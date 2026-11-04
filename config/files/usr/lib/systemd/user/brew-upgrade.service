@@ -1,0 +1,15 @@
+[Unit]
+Description=Upgrade Homebrew packages
+Documentation=man:brew(1)
+ConditionPathExists=/home/linuxbrew/.linuxbrew/bin/brew
+
+[Service]
+Type=oneshot
+# Enabled globally, so it starts for every user. Only the prefix owner can
+# write to it; for anyone else brew would fail on every run, so skip instead.
+ExecCondition=/usr/bin/test -O /home/linuxbrew/.linuxbrew/Homebrew
+ExecStart=/home/linuxbrew/.linuxbrew/bin/brew update
+ExecStart=/home/linuxbrew/.linuxbrew/bin/brew upgrade
+Environment=HOMEBREW_NO_ENV_HINTS=1
+Nice=19
+IOSchedulingClass=idle

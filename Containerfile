@@ -43,7 +43,6 @@ RUN rpm-ostree install \
     rofi \
     rofi-wayland \
     rofi-themes \
-    swappy \
     swaylock-effects \
     waybar \
     waypaper \
@@ -232,4 +231,5 @@ COPY config/files/etc/ /etc/
 COPY config/files/usr/ /usr/
 
 RUN systemctl --global enable yubikey-touch-detector.service && \
+    systemctl --global enable brew-upgrade.timer && \
     ostree container commit

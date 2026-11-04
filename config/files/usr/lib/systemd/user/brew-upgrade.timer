@@ -1,0 +1,12 @@
+[Unit]
+Description=Upgrade Homebrew packages daily
+
+[Timer]
+OnCalendar=daily
+# A user timer only runs while its user manager does, i.e. while logged in.
+# Persistent catches up on the next login instead of skipping missed days.
+Persistent=true
+RandomizedDelaySec=1h
+
+[Install]
+WantedBy=timers.target

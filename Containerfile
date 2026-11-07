@@ -172,7 +172,10 @@ RUN rpm-ostree install tailscale
 # existing onepassword-cli group): a host keeps its own /etc/group across
 # updates, so the setgid binaries carry raw GIDs that must mean the same group
 # there. sysusers.d/onepassword.conf creates them on the host with these GIDs.
-RUN groupadd -g 910 onepassword-cli && \
+# onepassword-cli must be >= 1000: the desktop app rejects CLI peers whose
+# effective GID is in the system range ("invalid group attempted to connect"),
+# which is why the RPM's own scriptlet uses a non-system groupadd.
+RUN groupadd -g 1500 onepassword-cli && \
     groupadd -g 911 onepassword && \
     groupadd -g 912 onepassword-mcp && \
     rpm --import https://downloads.1password.com/linux/keys/1password.asc && \

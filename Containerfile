@@ -278,9 +278,10 @@ RUN systemctl --global enable yubikey-touch-detector.service && \
     systemctl enable onepassword-sysusers.service
 
 # ostree container commit is deprecated; lint once here so bootc-incompatible
-# state fails the build, not the boot. The rm drops dnf/rpm-ostree leftovers
-# that would only seed fresh installs or land on a tmpfs. var-tmpfiles is
-# skipped: what it still lists are RPM-owned /var dirs (libvirt, swtpm,
-# tailscale) that their daemons create at runtime.
-RUN rm -rf /var/lib/dnf /var/lib/rpm-state /var/log/dnf5.log /run/rpm-ostree && \
-    bootc container lint --fatal-warnings --skip var-tmpfiles
+# state fails the build, not the boot. The rm drops dnf/rpm leftovers that would
+# only seed fresh installs. Skipped: var-tmpfiles, because what it still lists
+# are RPM-owned /var dirs (libvirt, swtpm, tailscale) that their daemons create
+# at runtime; nonempty-run-tmp, because /run and /tmp are tmpfs at boot and the
+# dnf, SELinux and rpm-ostree scriptlets that litter them change every base bump.
+RUN rm -rf /var/lib/dnf /var/lib/rpm-state /var/log/dnf5.log && \
+    bootc container lint --fatal-warnings --skip var-tmpfiles --skip nonempty-run-tmp

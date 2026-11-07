@@ -168,7 +168,14 @@ RUN rpm-ostree install tailscale
 # (ostree read-only layer — updates on rebase, same pattern as forticlient/google
 # on this system). /var/opt/1Password → /usr/lib/opt/1Password is created at boot
 # by tmpfiles.d/1password-opt.conf (can't rely on image /var for existing systems).
-RUN rpm --import https://downloads.1password.com/linux/keys/1password.asc && \
+# Groups get pinned GIDs, created before the CLI's scriptlet (which reuses an
+# existing onepassword-cli group): a host keeps its own /etc/group across
+# updates, so the setgid binaries carry raw GIDs that must mean the same group
+# there. sysusers.d/onepassword.conf creates them on the host with these GIDs.
+RUN groupadd -g 910 onepassword-cli && \
+    groupadd -g 911 onepassword && \
+    groupadd -g 912 onepassword-mcp && \
+    rpm --import https://downloads.1password.com/linux/keys/1password.asc && \
     printf '[1password]\nname=1Password Stable Channel\nbaseurl=https://downloads.1password.com/linux/rpm/stable/x86_64\nenabled=1\ngpgcheck=1\nrepo_gpgcheck=1\ngpgkey=https://downloads.1password.com/linux/keys/1password.asc\n' \
       > /etc/yum.repos.d/1password.repo && \
     rpm-ostree install 1password-cli && \
@@ -181,8 +188,6 @@ RUN rpm --import https://downloads.1password.com/linux/keys/1password.asc && \
     mkdir -p /usr/lib/opt && \
     cp -a /tmp/1pw/opt/1Password /usr/lib/opt/1Password && \
     rm -rf /tmp/1pw /tmp/1password.rpm && \
-    groupadd --system onepassword && \
-    groupadd --system onepassword-mcp && \
     chgrp onepassword /usr/lib/opt/1Password/1Password-BrowserSupport && \
     chmod g+s /usr/lib/opt/1Password/1Password-BrowserSupport && \
     { [ -f /usr/lib/opt/1Password/onepassword-mcp ] && \
@@ -264,10 +269,18 @@ RUN jq '.transports.docker["ghcr.io/nkbooth/framework"] = [{"type": "sigstoreSig
 # kanshi's unit is WantedBy=graphical-session.target, which buoy-session.target
 # binds to, but Fedora ships it disabled: without this enable the panel stays
 # on when docked under the packaged session, which never runs river/init.
+# systemd-sysusers.service never runs on ostree (/usr's mtime is pinned, so
+# ConditionNeedsUpdate=/etc stays false); onepassword-sysusers applies just the
+# 1Password groups on every boot instead.
 RUN systemctl --global enable yubikey-touch-detector.service && \
     systemctl --global enable brew-upgrade.timer && \
-    systemctl --global enable kanshi.service
+    systemctl --global enable kanshi.service && \
+    systemctl enable onepassword-sysusers.service
 
 # ostree container commit is deprecated; lint once here so bootc-incompatible
-# state (stray /var content, bad kernel layout) fails the build, not the boot.
-RUN bootc container lint
+# state fails the build, not the boot. The rm drops dnf/rpm-ostree leftovers
+# that would only seed fresh installs or land on a tmpfs. var-tmpfiles is
+# skipped: what it still lists are RPM-owned /var dirs (libvirt, swtpm,
+# tailscale) that their daemons create at runtime.
+RUN rm -rf /var/lib/dnf /var/lib/rpm-state /var/log/dnf5.log /run/rpm-ostree && \
+    bootc container lint --fatal-warnings --skip var-tmpfiles

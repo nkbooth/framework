@@ -14,8 +14,7 @@ RUN source /etc/os-release && \
     curl -fsSL -o /etc/yum.repos.d/atim-gping.repo \
       "https://copr.fedorainfracloud.org/coprs/atim/gping/repo/fedora-${VERSION_ID}/atim-gping-fedora-${VERSION_ID}.repo" && \
     curl -fsSL -o /etc/yum.repos.d/tailscale.repo \
-      "https://pkgs.tailscale.com/stable/fedora/tailscale.repo" \
-    && ostree container commit
+      "https://pkgs.tailscale.com/stable/fedora/tailscale.repo"
 
 # ── Hyprland compositor stack ─────────────────────────────────────────────────
 # Podman + Buildah ship with silverblue-main; podman-docker adds the docker shim. Add the Hyprland desktop layer
@@ -30,7 +29,7 @@ RUN echo 'install_weak_deps=False' >> /etc/dnf/dnf.conf
 # TEMPORARY (revert before the next scheduled run): kernel excluded because
 # ghcr.io/ublue-os/akmods:main-44 is still built for 7.2.4 while Fedora updates
 # already carry 7.2.5, so upgrading it here breaks the v4l2loopback kmod install.
-RUN dnf upgrade -y --exclude='kernel*' && dnf clean all && ostree container commit
+RUN dnf upgrade -y --exclude='kernel*' && dnf clean all
 
 RUN rpm-ostree install \
     cava \
@@ -45,8 +44,7 @@ RUN rpm-ostree install \
     rofi-themes \
     swaylock-effects \
     waybar \
-    waypaper \
-    && ostree container commit
+    waypaper
 
 # ── River compositor ──────────────────────────────────────────────────────────
 # Mainline Fedora packages — no COPR needed. River is the compositor the buoy
@@ -62,8 +60,7 @@ RUN rpm-ostree install \
     fuzzel \
     kanshi \
     river \
-    xdg-desktop-portal-wlr \
-    && ostree container commit
+    xdg-desktop-portal-wlr
 
 # ── CLI tooling ───────────────────────────────────────────────────────────────
 # gcc + binutils needed for nvim-treesitter to compile parsers at runtime
@@ -72,15 +69,13 @@ RUN rpm-ostree install \
     gcc \
     just \
     podman-docker \
-    task \
-    && ostree container commit
+    task
 
 # ── AppImage support ──────────────────────────────────────────────────────────
 # electron-builder AppImages (e.g. NEO) still use the legacy runtime that
 # dlopen()s libfuse.so.2; the base image only ships FUSE 3.
 RUN rpm-ostree install \
-    fuse-libs \
-    && ostree container commit
+    fuse-libs
 
 # ── User CLI tools ────────────────────────────────────────────────────────────
 RUN rpm-ostree install \
@@ -97,49 +92,42 @@ RUN rpm-ostree install \
     ShellCheck \
     starship \
     yt-dlp \
-    zoxide \
-    && ostree container commit
+    zoxide
 
 # atuin Fedora package omits daemon feature; install official musl binary
 RUN curl -fsSL "https://github.com/atuinsh/atuin/releases/latest/download/atuin-x86_64-unknown-linux-musl.tar.gz" \
     | tar -xz -C /tmp && \
     install -m 755 /tmp/atuin-x86_64-unknown-linux-musl/atuin /usr/bin/atuin && \
-    rm -rf /tmp/atuin-x86_64-unknown-linux-musl && \
-    ostree container commit
+    rm -rf /tmp/atuin-x86_64-unknown-linux-musl
 
 # eza has no Fedora 43 RPM; install musl binary from GitHub releases
 RUN curl -fsSL "https://github.com/eza-community/eza/releases/latest/download/eza_x86_64-unknown-linux-musl.tar.gz" \
     | tar -xz -C /tmp && \
     install -m 755 /tmp/eza /usr/bin/eza && \
-    rm /tmp/eza && \
-    ostree container commit
+    rm /tmp/eza
 
 # zellij has no Fedora 43 RPM; install static musl binary from GitHub releases
 RUN curl -fsSL "https://github.com/zellij-org/zellij/releases/latest/download/zellij-x86_64-unknown-linux-musl.tar.gz" \
     | tar -xz -C /tmp && \
     install -m 755 /tmp/zellij /usr/bin/zellij && \
-    rm /tmp/zellij && \
-    ostree container commit
+    rm /tmp/zellij
 
 # taskwarrior-tui has no Fedora RPM; install static musl binary from GitHub releases
 RUN curl -fsSL "https://github.com/kdheepak/taskwarrior-tui/releases/latest/download/taskwarrior-tui-x86_64-unknown-linux-musl.tar.gz" \
     | tar -xz -C /tmp && \
     install -m 755 /tmp/taskwarrior-tui /usr/bin/taskwarrior-tui && \
-    rm /tmp/taskwarrior-tui && \
-    ostree container commit
+    rm /tmp/taskwarrior-tui
 
 # neovim — install latest release tarball from GitHub (newer than Fedora RPM)
 RUN curl -fsSL "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz" \
     | tar -xz -C /tmp && \
     cp -r /tmp/nvim-linux-x86_64/* /usr/ && \
-    rm -rf /tmp/nvim-linux-x86_64 && \
-    ostree container commit
+    rm -rf /tmp/nvim-linux-x86_64
 
 # SubTUI — music player TUI; installed from GitHub RPM release
 RUN SUBTUI_VERSION=$(curl -fsSL https://api.github.com/repos/MattiaPun/SubTUI/releases/latest | grep '"tag_name"' | cut -d'"' -f4 | tr -d 'v') && \
     rpm-ostree install \
-      "https://github.com/MattiaPun/SubTUI/releases/download/v${SUBTUI_VERSION}/SubTUI_${SUBTUI_VERSION}_linux_amd64.rpm" \
-    && ostree container commit
+      "https://github.com/MattiaPun/SubTUI/releases/download/v${SUBTUI_VERSION}/SubTUI_${SUBTUI_VERSION}_linux_amd64.rpm"
 
 # yubikey-touch-detector — desktop notification when the YubiKey blinks for a
 # touch (gpg sign/decrypt, ssh, u2f); no Fedora RPM. Pinned rather than latest:
@@ -152,15 +140,13 @@ RUN YTD_VERSION=1.15.0 && \
     curl -fsSLO "https://github.com/maximbaz/yubikey-touch-detector/releases/download/${YTD_VERSION}/SHA256SUMS" && \
     grep ' yubikey-touch-detector-x86_64-linux-gnu$' SHA256SUMS | sha256sum -c - && \
     install -m 755 yubikey-touch-detector-x86_64-linux-gnu /usr/bin/yubikey-touch-detector && \
-    rm yubikey-touch-detector-x86_64-linux-gnu SHA256SUMS && \
-    ostree container commit
+    rm yubikey-touch-detector-x86_64-linux-gnu SHA256SUMS
 
 # ── Fonts ─────────────────────────────────────────────────────────────────────
 RUN rpm-ostree install \
     adwaita-fonts-all \
     liberation-fonts-all \
-    opendyslexic-fonts \
-    && ostree container commit
+    opendyslexic-fonts
 
 # JetBrains Mono NF + Cascadia Code NF from nerd-fonts releases (NF builds are
 # supersets of the upstream fonts, so we skip the plain RPM packages)
@@ -169,12 +155,10 @@ RUN mkdir -p /usr/share/fonts/nerd-fonts && \
       | tar -xJ -C /usr/share/fonts/nerd-fonts && \
     curl -fsSL "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/CascadiaCode.tar.xz" \
       | tar -xJ -C /usr/share/fonts/nerd-fonts && \
-    fc-cache -f && \
-    ostree container commit
+    fc-cache -f
 
 # ── Tailscale ─────────────────────────────────────────────────────────────────
-RUN rpm-ostree install tailscale \
-    && ostree container commit
+RUN rpm-ostree install tailscale
 
 # ── 1Password ─────────────────────────────────────────────────────────────────
 # CLI: rpm-ostree, straightforward.
@@ -207,8 +191,7 @@ RUN rpm --import https://downloads.1password.com/linux/keys/1password.asc && \
     install -Dm0644 /usr/lib/opt/1Password/resources/custom_allowed_browsers \
       -t /etc/1password/ && \
     ln -sf /usr/lib/opt/1Password/1password /usr/bin/1password && \
-    (chmod 4755 /usr/lib/opt/1Password/chrome-sandbox || true) && \
-    ostree container commit
+    (chmod 4755 /usr/lib/opt/1Password/chrome-sandbox || true)
 
 # ── Virtualization ────────────────────────────────────────────────────────────
 # libvirt-daemon-driver-qemu provides virtqemud (modular daemon replaces libvirtd)
@@ -217,8 +200,7 @@ RUN rpm --import https://downloads.1password.com/linux/keys/1password.asc && \
 RUN rpm-ostree install \
     libvirt-daemon-config-network \
     libvirt-daemon-driver-qemu \
-    qemu-kvm \
-    && ostree container commit
+    qemu-kvm
 
 # ── v4l2loopback (virtual camera) ─────────────────────────────────────────────
 # Out-of-tree kmod: pulled prebuilt+signed from ublue akmods (main-44 tracks the
@@ -228,8 +210,7 @@ COPY --from=ghcr.io/ublue-os/akmods:main-44 /rpms/ /tmp/akmods-rpms/
 RUN rpm-ostree install \
       /tmp/akmods-rpms/kmods/kmod-v4l2loopback*.rpm \
       /tmp/akmods-rpms/common/v4l2loopback-*.rpm && \
-    rm -rf /tmp/akmods-rpms && \
-    ostree container commit
+    rm -rf /tmp/akmods-rpms
 
 # ── buoy-wm (packaged login session) ──────────────────────────────────────────
 # A GitHub release asset, not a COPR package (buoy-wm ADR-011: RPL keeps buoy
@@ -263,8 +244,7 @@ RUN source /etc/os-release && \
     rpm-ostree install foot "/tmp/${BUOY_RPM}" && \
     rm -f "/tmp/${BUOY_RPM}" && \
     test -x /usr/bin/foot && \
-    test -f /usr/share/wayland-sessions/buoy.desktop && \
-    ostree container commit
+    test -f /usr/share/wayland-sessions/buoy.desktop
 
 # ── Overlay files ─────────────────────────────────────────────────────────────
 COPY config/files/etc/ /etc/
@@ -279,13 +259,15 @@ RUN jq '.transports.docker["ghcr.io/nkbooth/framework"] = [{"type": "sigstoreSig
     mv /tmp/policy.json /etc/containers/policy.json && \
     jq -e '.transports.docker["ghcr.io/nkbooth/framework"][0].type == "sigstoreSigned"' \
       /etc/containers/policy.json && \
-    test -f /etc/pki/containers/nkbooth-framework.pub && \
-    ostree container commit
+    test -f /etc/pki/containers/nkbooth-framework.pub
 
 # kanshi's unit is WantedBy=graphical-session.target, which buoy-session.target
 # binds to, but Fedora ships it disabled: without this enable the panel stays
 # on when docked under the packaged session, which never runs river/init.
 RUN systemctl --global enable yubikey-touch-detector.service && \
     systemctl --global enable brew-upgrade.timer && \
-    systemctl --global enable kanshi.service && \
-    ostree container commit
+    systemctl --global enable kanshi.service
+
+# ostree container commit is deprecated; lint once here so bootc-incompatible
+# state (stray /var content, bad kernel layout) fails the build, not the boot.
+RUN bootc container lint

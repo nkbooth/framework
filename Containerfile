@@ -270,6 +270,21 @@ RUN source /etc/os-release && \
 COPY config/files/etc/ /etc/
 COPY config/files/usr/ /usr/
 
+# The base image ships policy.json whole (no ublue merge script), so an overlay
+# copy would drop its ublue-os/toolbx entries and go stale on every base bump.
+# Patch it in place instead; without this entry the image falls to the default
+# insecureAcceptAnything and rpm-ostree pulls it unverified.
+RUN jq '.transports.docker["ghcr.io/nkbooth/framework"] = [{
+          "type": "sigstoreSigned",
+          "keyPath": "/etc/pki/containers/nkbooth-framework.pub",
+          "signedIdentity": {"type": "matchRepository"}
+        }]' /etc/containers/policy.json > /tmp/policy.json && \
+    mv /tmp/policy.json /etc/containers/policy.json && \
+    jq -e '.transports.docker["ghcr.io/nkbooth/framework"][0].type == "sigstoreSigned"' \
+      /etc/containers/policy.json && \
+    test -f /etc/pki/containers/nkbooth-framework.pub && \
+    ostree container commit
+
 # kanshi's unit is WantedBy=graphical-session.target, which buoy-session.target
 # binds to, but Fedora ships it disabled: without this enable the panel stays
 # on when docked under the packaged session, which never runs river/init.

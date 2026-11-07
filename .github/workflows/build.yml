@@ -68,7 +68,7 @@ jobs:
 
       - name: Sign image
         run: |
-          cosign sign --yes \
+          cosign sign --yes --key env://COSIGN_PRIVATE_KEY \
             "${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.push.outputs.digest }}"
         env:
           COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}

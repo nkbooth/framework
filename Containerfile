@@ -274,11 +274,8 @@ COPY config/files/usr/ /usr/
 # copy would drop its ublue-os/toolbx entries and go stale on every base bump.
 # Patch it in place instead; without this entry the image falls to the default
 # insecureAcceptAnything and rpm-ostree pulls it unverified.
-RUN jq '.transports.docker["ghcr.io/nkbooth/framework"] = [{
-          "type": "sigstoreSigned",
-          "keyPath": "/etc/pki/containers/nkbooth-framework.pub",
-          "signedIdentity": {"type": "matchRepository"}
-        }]' /etc/containers/policy.json > /tmp/policy.json && \
+RUN jq '.transports.docker["ghcr.io/nkbooth/framework"] = [{"type": "sigstoreSigned", "keyPath": "/etc/pki/containers/nkbooth-framework.pub", "signedIdentity": {"type": "matchRepository"}}]' \
+      /etc/containers/policy.json > /tmp/policy.json && \
     mv /tmp/policy.json /etc/containers/policy.json && \
     jq -e '.transports.docker["ghcr.io/nkbooth/framework"][0].type == "sigstoreSigned"' \
       /etc/containers/policy.json && \

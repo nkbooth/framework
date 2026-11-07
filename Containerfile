@@ -48,14 +48,19 @@ RUN rpm-ostree install \
     waypaper \
     && ostree container commit
 
-# ── River compositor (evaluation) ────────────────────────────────────────────
-# Mainline Fedora packages — no COPR needed. Alternative wlroots compositor,
-# evaluated alongside the Hyprland stack above. River ships no launcher of its
-# own, so fuzzel comes along here rather than in the Hyprland stack.
+# ── River compositor ──────────────────────────────────────────────────────────
+# Mainline Fedora packages — no COPR needed. River is the compositor the buoy
+# login session runs on, and buoy-wm's RPM Requires it. River ships no launcher
+# of its own, so fuzzel comes along here rather than in the Hyprland stack.
 # xdg-desktop-portal-wlr backs ScreenCast/Screenshot under river; the hyprland
 # portal in the block above needs Hyprland's IPC and cannot serve river.
+# River delegates output enable/disable to a wlr-output-management client and
+# ships none, so kanshi (a user unit bound to graphical-session.target) is what
+# turns the laptop panel off when docked — it lives in the image, not in a
+# local layer, like anything else the session requires.
 RUN rpm-ostree install \
     fuzzel \
+    kanshi \
     river \
     xdg-desktop-portal-wlr \
     && ostree container commit
@@ -224,6 +229,31 @@ RUN rpm-ostree install \
       /tmp/akmods-rpms/kmods/kmod-v4l2loopback*.rpm \
       /tmp/akmods-rpms/common/v4l2loopback-*.rpm && \
     rm -rf /tmp/akmods-rpms && \
+    ostree container commit
+
+# ── buoy-wm (packaged login session) ──────────────────────────────────────────
+# A GitHub release asset, not a COPR package (buoy-wm ADR-011: RPL keeps buoy
+# out of Fedora proper, and no COPR project exists). Pinned by version *and*
+# digest rather than releases/latest so the image definition names the exact
+# bytes it ships; an RC bump is a two-line edit (BUOY_VERSION, BUOY_SHA256).
+# The spec's hard dependencies (river, systemd, dbus-tools) are already in the
+# image. foot is named explicitly: the packaged session (buoy.desktop →
+# river -c /usr/libexec/buoy-wm/buoy-session) never sources a shell profile,
+# so Homebrew's foot is invisible to it and buoy's default terminal = "foot"
+# must be in /usr/bin — otherwise every tag's pinned terminal and Super+Return
+# fail silently, the failure the hand-written river/init works around with
+# brew shellenv. The install_weak_deps=False line near the top is dnf's, not
+# rpm-ostree's (kitty, nwg-panel and wofi are all on the host), so nothing
+# here relies on weak dependencies either way. -1.fc44 is hard-coded, as
+# akmods:main-44 is above; Story 5.4 is where the RPM gains a per-release name.
+RUN BUOY_VERSION=1.0.0-rc.1 && \
+    BUOY_RPM="buoy-wm-${BUOY_VERSION}-1.fc44.x86_64.rpm" && \
+    BUOY_SHA256=fe2f89f4297410eaef95c623b4951c805852b88120da7c76fb3042b6665cad4e && \
+    curl -fsSL -o "/tmp/${BUOY_RPM}" \
+      "https://github.com/nkbooth/buoy-wm/releases/download/v${BUOY_VERSION}/${BUOY_RPM}" && \
+    echo "${BUOY_SHA256}  /tmp/${BUOY_RPM}" | sha256sum -c - && \
+    rpm-ostree install foot "/tmp/${BUOY_RPM}" && \
+    rm -f "/tmp/${BUOY_RPM}" && \
     ostree container commit
 
 # ── Overlay files ─────────────────────────────────────────────────────────────

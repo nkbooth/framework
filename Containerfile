@@ -235,7 +235,8 @@ RUN rpm-ostree install \
 # A GitHub release asset, not a COPR package (buoy-wm ADR-011: RPL keeps buoy
 # out of Fedora proper, and no COPR project exists). Pinned by version *and*
 # digest rather than releases/latest so the image definition names the exact
-# bytes it ships; an RC bump is a two-line edit (BUOY_VERSION, BUOY_SHA256).
+# bytes it ships; a bump is an edit to BUOY_VERSION, BUOY_RELEASE and
+# BUOY_SHA256, nothing else.
 # The spec's hard dependencies (river, systemd, dbus-tools) are already in the
 # image. foot is named explicitly: the packaged session (buoy.desktop →
 # river -c /usr/libexec/buoy-wm/buoy-session) never sources a shell profile,
@@ -244,22 +245,35 @@ RUN rpm-ostree install \
 # fail silently, the failure the hand-written river/init works around with
 # brew shellenv. The install_weak_deps=False line near the top is dnf's, not
 # rpm-ostree's (kitty, nwg-panel and wofi are all on the host), so nothing
-# here relies on weak dependencies either way. -1.fc44 is hard-coded, as
-# akmods:main-44 is above; Story 5.4 is where the RPM gains a per-release name.
-RUN BUOY_VERSION=1.0.0-rc.1 && \
-    BUOY_RPM="buoy-wm-${BUOY_VERSION}-1.fc44.x86_64.rpm" && \
+# here relies on weak dependencies either way. The dist tag and arch come
+# from the base image, as the COPR repo URLs do above, so a Fedora bump 404s
+# on a missing asset instead of silently layering last release's RPM; the
+# digest still has to change by hand. Story 5.4 is where the RPM gains a
+# per-release name. The retry covers the weekly cron build, which has no
+# layer cache to fall back on. The final test guards the exact failure the
+# session cannot report: no /usr/bin/foot, or no session entry for greetd.
+RUN source /etc/os-release && \
+    BUOY_VERSION=1.0.0-rc.1 && \
+    BUOY_RELEASE=1 && \
+    BUOY_RPM="buoy-wm-${BUOY_VERSION}-${BUOY_RELEASE}.fc${VERSION_ID}.$(uname -m).rpm" && \
     BUOY_SHA256=fe2f89f4297410eaef95c623b4951c805852b88120da7c76fb3042b6665cad4e && \
-    curl -fsSL -o "/tmp/${BUOY_RPM}" \
+    curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 -o "/tmp/${BUOY_RPM}" \
       "https://github.com/nkbooth/buoy-wm/releases/download/v${BUOY_VERSION}/${BUOY_RPM}" && \
     echo "${BUOY_SHA256}  /tmp/${BUOY_RPM}" | sha256sum -c - && \
     rpm-ostree install foot "/tmp/${BUOY_RPM}" && \
     rm -f "/tmp/${BUOY_RPM}" && \
+    test -x /usr/bin/foot && \
+    test -f /usr/share/wayland-sessions/buoy.desktop && \
     ostree container commit
 
 # ── Overlay files ─────────────────────────────────────────────────────────────
 COPY config/files/etc/ /etc/
 COPY config/files/usr/ /usr/
 
+# kanshi's unit is WantedBy=graphical-session.target, which buoy-session.target
+# binds to, but Fedora ships it disabled: without this enable the panel stays
+# on when docked under the packaged session, which never runs river/init.
 RUN systemctl --global enable yubikey-touch-detector.service && \
     systemctl --global enable brew-upgrade.timer && \
+    systemctl --global enable kanshi.service && \
     ostree container commit

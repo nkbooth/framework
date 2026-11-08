@@ -242,10 +242,10 @@ RUN rpm-ostree install \
 # layer cache to fall back on. The final test guards the exact failure the
 # session cannot report: no /usr/bin/foot, or no session entry for greetd.
 RUN source /etc/os-release && \
-    BUOY_VERSION=1.0.0-rc.1 && \
+    BUOY_VERSION=1.0.0-rc.2 && \
     BUOY_RELEASE=1 && \
     BUOY_RPM="buoy-wm-${BUOY_VERSION}-${BUOY_RELEASE}.fc${VERSION_ID}.$(uname -m).rpm" && \
-    BUOY_SHA256=fe2f89f4297410eaef95c623b4951c805852b88120da7c76fb3042b6665cad4e && \
+    BUOY_SHA256=3101d49e3f2d2b481ce133fd609a134e7f43ac21da359bcc446ea8517f6c0b32 && \
     curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 -o "/tmp/${BUOY_RPM}" \
       "https://github.com/nkbooth/buoy-wm/releases/download/v${BUOY_VERSION}/${BUOY_RPM}" && \
     echo "${BUOY_SHA256}  /tmp/${BUOY_RPM}" | sha256sum -c - && \

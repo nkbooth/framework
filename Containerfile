@@ -1,6 +1,18 @@
 ARG BASE_IMAGE="ghcr.io/ublue-os/silverblue-main"
 ARG FEDORA_MAJOR_VERSION="44"
 
+# ── clipse builder ────────────────────────────────────────────────────────────
+# clipse 1.2.1 checks free space on "/", which composefs always reports as full,
+# so the release refuses every history write on this image. The fix is on main
+# but unreleased: pin the commit, and move to a release tag once one ships.
+FROM registry.access.redhat.com/ubi9/go-toolset:1.27 AS clipse-builder
+ARG CLIPSE_COMMIT=e15d21b79d7a0cdfb0afe96f3d9e7d90f56df8dc
+RUN git init --quiet clipse && cd clipse && \
+    git fetch --quiet --depth 1 https://github.com/savedra1/clipse "${CLIPSE_COMMIT}" && \
+    git checkout --quiet FETCH_HEAD && \
+    CGO_ENABLED=0 go build -trimpath -buildvcs=false -tags wayland -o /tmp/clipse . && \
+    test -x /tmp/clipse
+
 FROM ${BASE_IMAGE}:${FEDORA_MAJOR_VERSION}
 
 # ── Repos ─────────────────────────────────────────────────────────────────────
@@ -61,6 +73,13 @@ RUN rpm-ostree install \
     kanshi \
     river \
     xdg-desktop-portal-wlr
+
+# ── clipse clipboard history ──────────────────────────────────────────────────
+# The listener units run wl-paste from the base image's wl-clipboard; assert it
+# so a base change that drops it fails the build instead of silently recording
+# nothing.
+COPY --from=clipse-builder /tmp/clipse /usr/bin/clipse
+RUN test -x /usr/bin/clipse && test -x /usr/bin/wl-paste
 
 # ── CLI tooling ───────────────────────────────────────────────────────────────
 # gcc + binutils needed for nvim-treesitter to compile parsers at runtime
@@ -275,7 +294,9 @@ RUN jq '.transports.docker["ghcr.io/nkbooth/framework"] = [{"type": "sigstoreSig
 # systemd-sysusers.service never runs on ostree (/usr's mtime is pinned, so
 # ConditionNeedsUpdate=/etc stays false); onepassword-sysusers applies just the
 # 1Password groups on every boot instead.
+# clipse's listeners are this image's own units, so nothing enables them but us.
 RUN systemctl --global enable yubikey-touch-detector.service && \
+    systemctl --global enable clipse-text.service clipse-image.service && \
     systemctl --global enable brew-upgrade.timer && \
     systemctl --global enable kanshi.service && \
     systemctl enable onepassword-sysusers.service

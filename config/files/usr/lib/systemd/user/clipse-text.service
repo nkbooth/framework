@@ -1,0 +1,16 @@
+[Unit]
+Description=Record text clipboard changes into clipse history
+Documentation=https://github.com/savedra1/clipse
+PartOf=graphical-session.target
+After=graphical-session.target
+
+# clipse -listen would fork these watchers detached from systemd; running
+# wl-paste directly keeps them supervised and tied to the session.
+[Service]
+Type=simple
+ExecCondition=/bin/sh -c '[ -n "$WAYLAND_DISPLAY" ]'
+ExecStart=/usr/bin/wl-paste --type text --watch /usr/bin/clipse --wl-store
+Restart=on-failure
+
+[Install]
+WantedBy=graphical-session.target

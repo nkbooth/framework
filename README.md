@@ -42,7 +42,7 @@ new image is booted, `sudo cp /usr/etc/pki/containers/nkbooth-framework.pub
 `ghcr.io/nkbooth/framework` entry is `insecureAcceptAnything` works the same way;
 restore the file from `/usr/etc/containers/policy.json` afterwards.
 
-## Rebase from bluefin-dx
+## Rebase onto this image
 
 After the first image is published to ghcr.io:
 
@@ -56,10 +56,11 @@ rpm-ostree rebase ostree-image-signed:docker://ghcr.io/nkbooth/framework:latest
 Containerfile               image definition
 config/
   files/                    overlaid onto OS root at build time
-    etc/yum.repos.d/        extra RPM repos (1Password, etc.)
-    etc/pki/rpm-gpg/        GPG keys for those repos
     etc/pki/containers/     cosign public key the host verifies images against
     etc/containers/         registries.d entry for sigstore attachments
+    etc/modprobe.d/, etc/modules-load.d/   v4l2loopback options and autoload
+    usr/lib/systemd/        system and user units (1Password groups, clipse, brew, …)
+    usr/lib/udev/rules.d/   device permission rules (radios, ttyACM)
     usr/share/ublue-os/     just recipes available system-wide
 .github/workflows/build.yml build + sign + push on push/schedule
 justfile                    local dev helpers (buildah, status)
@@ -70,10 +71,20 @@ justfile                    local dev helpers (buildah, status)
 Layer order matters for cache efficiency — keep stable packages near the top and frequently-changing ones near the bottom.
 
 ```dockerfile
-RUN rpm-ostree install <package> && ostree container commit
+RUN rpm-ostree install <package>
 ```
+
+No per-step `ostree container commit`: the last step runs `bootc container lint`
+once for the whole image.
 
 ## Updating the base
 
-The weekly cron in `build.yml` rebuilds against the latest `bluefin-dx:43` automatically.
-To pin to a specific digest instead of `stable`, change the `ARG` in `Containerfile`.
+The weekly cron in `build.yml` rebuilds against the latest
+`silverblue-main:${FEDORA_MAJOR_VERSION}` (set by the `ARG` at the top of
+`Containerfile`). It never moves to a new Fedora release on its own: bumping
+that `ARG` is the release upgrade, and it also selects the matching
+`akmods:main-${FEDORA_MAJOR_VERSION}` kmods and the per-release COPR repos and
+buoy-wm RPM.
+
+To pin an exact base build, replace the tag in the `FROM ${BASE_IMAGE}:…` line
+with a digest (`@sha256:…`).

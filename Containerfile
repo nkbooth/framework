@@ -13,6 +13,11 @@ RUN git init --quiet clipse && cd clipse && \
     CGO_ENABLED=0 go build -trimpath -buildvcs=false -tags wayland -o /tmp/clipse . && \
     test -x /tmp/clipse
 
+# ── akmods (prebuilt kmods) ───────────────────────────────────────────────────
+# COPY --from cannot expand ARGs, so a named stage carries the Fedora version
+# into the akmods tag; a version bump then cannot leave the kmods behind.
+FROM ghcr.io/ublue-os/akmods:main-${FEDORA_MAJOR_VERSION} AS akmods
+
 FROM ${BASE_IMAGE}:${FEDORA_MAJOR_VERSION}
 
 # ── Repos ─────────────────────────────────────────────────────────────────────
@@ -144,9 +149,19 @@ RUN curl -fsSL "https://github.com/neovim/neovim/releases/latest/download/nvim-l
     rm -rf /tmp/nvim-linux-x86_64
 
 # SubTUI — music player TUI; installed from GitHub RPM release
-RUN SUBTUI_VERSION=$(curl -fsSL https://api.github.com/repos/MattiaPun/SubTUI/releases/latest | grep '"tag_name"' | cut -d'"' -f4 | tr -d 'v') && \
-    rpm-ostree install \
-      "https://github.com/MattiaPun/SubTUI/releases/download/v${SUBTUI_VERSION}/SubTUI_${SUBTUI_VERSION}_linux_amd64.rpm"
+# The RPM is unsigned, so the pinned digest is the only thing tying the image to
+# known bytes: dnf skips signature checks on a file it is handed, and from
+# Fedora 45 rpm-ostree refuses an unsigned package outright. A bump is an edit
+# to SUBTUI_VERSION and SUBTUI_SHA256 (from the release's checksums.txt).
+RUN SUBTUI_VERSION=2.14.3 && \
+    SUBTUI_SHA256=e82d542f19209f49ffdf64e2df9cfee265302a47afcadc6d2fccd1bac21907f3 && \
+    SUBTUI_RPM="SubTUI_${SUBTUI_VERSION}_linux_amd64.rpm" && \
+    curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 -o "/tmp/${SUBTUI_RPM}" \
+      "https://github.com/MattiaPun/SubTUI/releases/download/v${SUBTUI_VERSION}/${SUBTUI_RPM}" && \
+    echo "${SUBTUI_SHA256}  /tmp/${SUBTUI_RPM}" | sha256sum -c - && \
+    dnf -y install "/tmp/${SUBTUI_RPM}" && \
+    dnf clean all && \
+    rm -f "/tmp/${SUBTUI_RPM}"
 
 # yubikey-touch-detector — desktop notification when the YubiKey blinks for a
 # touch (gpg sign/decrypt, ssh, u2f); no Fedora RPM. Pinned rather than latest:
@@ -230,14 +245,33 @@ RUN rpm-ostree install \
     qemu-kvm
 
 # ── v4l2loopback (virtual camera) ─────────────────────────────────────────────
-# Out-of-tree kmod: pulled prebuilt+signed from ublue akmods (main-44 tracks the
-# silverblue-main:44 kernel). ublue-os-akmods-addons (signing key/repos) already
+# Out-of-tree kmod: pulled prebuilt+signed from ublue akmods (main-N tracks the
+# silverblue-main:N kernel). ublue-os-akmods-addons (signing key/repos) already
 # ships in the base image, so we install only the kmod and its -common sibling.
-COPY --from=ghcr.io/ublue-os/akmods:main-44 /rpms/ /tmp/akmods-rpms/
-RUN rpm-ostree install \
+# dnf, not rpm-ostree: the kmod RPM carries no package signature and the
+# -common one is signed by RPM Fusion's unimported key. From Fedora 45 rpm
+# enforces signatures (%_pkgverify_level all) and rpm-ostree refuses both, while
+# dnf5 does not check local files it is handed (ublue's own images install
+# akmods the same way). What vouches for the module instead is its kernel
+# signature: "ublue kernel" is the key Secure Boot already trusts on the host,
+# and anything else would install fine and then never load.
+# The kmod's kernel-uname-r requirement only proves the RPM installed; the
+# checks after it prove the module the image boots is built for the image's one
+# kernel (vermagic) and that modules-load.d can find it (modules.dep), since a
+# mismatch otherwise surfaces only as a missing camera after a reboot.
+COPY --from=akmods /rpms/ /tmp/akmods-rpms/
+RUN dnf -y install \
       /tmp/akmods-rpms/kmods/kmod-v4l2loopback*.rpm \
       /tmp/akmods-rpms/common/v4l2loopback-*.rpm && \
-    rm -rf /tmp/akmods-rpms
+    dnf clean all && \
+    rm -rf /tmp/akmods-rpms && \
+    KVER=$(rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}\n' kernel-core) && \
+    test "$(printf '%s\n' "${KVER}" | wc -l)" -eq 1 && \
+    KO=$(find "/usr/lib/modules/${KVER}/extra" -name 'v4l2loopback.ko*') && \
+    test -n "${KO}" && \
+    modinfo -F vermagic "${KO}" | grep -q "^${KVER} " && \
+    test "$(modinfo -F signer "${KO}")" = "ublue kernel" && \
+    grep -q 'v4l2loopback\.ko' "/usr/lib/modules/${KVER}/modules.dep"
 
 # ── buoy-wm (packaged login session) ──────────────────────────────────────────
 # A GitHub release asset, not a COPR package (buoy-wm ADR-011: RPL keeps buoy
@@ -251,9 +285,12 @@ RUN rpm-ostree install \
 # so Homebrew's foot is invisible to it and buoy's default terminal = "foot"
 # must be in /usr/bin — otherwise every tag's pinned terminal and Super+Return
 # fail silently, the failure the hand-written river/init works around with
-# brew shellenv. The install_weak_deps=False line near the top is dnf's, not
-# rpm-ostree's (kitty, nwg-panel and wofi are all on the host), so nothing
-# here relies on weak dependencies either way. The dist tag and arch come
+# brew shellenv. Installed with dnf, which honours install_weak_deps=False, so
+# none of buoy's or foot's Recommends come along; every one of them is in the
+# base image or installed explicitly elsewhere in this file (zellij as the
+# musl binary). dnf rather than rpm-ostree because the RPM is unsigned and,
+# from Fedora 45, rpm-ostree refuses it; the digest check is what vouches for
+# it, since dnf skips signature checks on a file it is handed. The dist tag and arch come
 # from the base image, as the COPR repo URLs do above, so a Fedora bump 404s
 # on a missing asset instead of silently layering last release's RPM; the
 # digest still has to change by hand. Story 5.4 is where the RPM gains a
@@ -268,7 +305,8 @@ RUN source /etc/os-release && \
     curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 -o "/tmp/${BUOY_RPM}" \
       "https://github.com/nkbooth/buoy-wm/releases/download/v${BUOY_VERSION}/${BUOY_RPM}" && \
     echo "${BUOY_SHA256}  /tmp/${BUOY_RPM}" | sha256sum -c - && \
-    rpm-ostree install foot "/tmp/${BUOY_RPM}" && \
+    dnf -y install foot "/tmp/${BUOY_RPM}" && \
+    dnf clean all && \
     rm -f "/tmp/${BUOY_RPM}" && \
     test -x /usr/bin/foot && \
     test -f /usr/share/wayland-sessions/buoy.desktop
@@ -307,5 +345,5 @@ RUN systemctl --global enable yubikey-touch-detector.service && \
 # are RPM-owned /var dirs (libvirt, swtpm, tailscale) that their daemons create
 # at runtime; nonempty-run-tmp, because /run and /tmp are tmpfs at boot and the
 # dnf, SELinux and rpm-ostree scriptlets that litter them change every base bump.
-RUN rm -rf /var/lib/dnf /var/lib/rpm-state /var/log/dnf5.log && \
+RUN rm -rf /var/lib/dnf /var/lib/rpm-state /var/log/dnf5.log* && \
     bootc container lint --fatal-warnings --skip var-tmpfiles --skip nonempty-run-tmp

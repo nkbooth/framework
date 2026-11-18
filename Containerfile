@@ -21,7 +21,7 @@ FROM ghcr.io/ublue-os/akmods:main-${FEDORA_MAJOR_VERSION} AS akmods
 FROM ${BASE_IMAGE}:${FEDORA_MAJOR_VERSION}
 
 # ── Repos ─────────────────────────────────────────────────────────────────────
-# sdegler/hyprland — hyprland, eww-git, hyprpaper, swaylock-effects, waypaper, etc.
+# sdegler/hyprland — hyprland, eww-git, hyprpaper, swaylock-effects, etc.
 # atim/starship + atim/gping — not in standard Fedora repos
 RUN source /etc/os-release && \
     curl -fsSL -o /etc/yum.repos.d/sdegler-hyprland.repo \
@@ -55,13 +55,11 @@ RUN rpm-ostree install \
     hyprland \
     hyprland-contrib \
     hyprpaper \
-    pyprland \
     rofi \
     rofi-wayland \
     rofi-themes \
     swaylock-effects \
-    waybar \
-    waypaper
+    waybar
 
 # ── River compositor ──────────────────────────────────────────────────────────
 # Mainline Fedora packages — no COPR needed. River is the compositor the buoy

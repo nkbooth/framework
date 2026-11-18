@@ -43,9 +43,9 @@ RUN echo 'install_weak_deps=False' >> /etc/dnf/dnf.conf
 
 # Sync base image packages with current repos before layering; rpm-ostree in
 # container build mode cannot upgrade @System packages, but dnf can.
-# TEMPORARY (revert before the next scheduled run): kernel excluded because
-# ghcr.io/ublue-os/akmods:main-44 is still built for 7.2.4 while Fedora updates
-# already carry 7.2.5, so upgrading it here breaks the v4l2loopback kmod install.
+# The kernel stays at the base image's version: akmods:main-N is built for the
+# silverblue-main:N kernel, and Fedora updates often carry a newer one before
+# ublue rebuilds, which would leave the v4l2loopback kmod without a kernel.
 RUN dnf upgrade -y --exclude='kernel*' && dnf clean all
 
 RUN rpm-ostree install \
@@ -253,18 +253,25 @@ RUN rpm-ostree install \
 # akmods the same way). What vouches for the module instead is its kernel
 # signature: "ublue kernel" is the key Secure Boot already trusts on the host,
 # and anything else would install fine and then never load.
+# The kernel is excluded because akmods:main-N can be rebuilt for a newer kernel
+# before silverblue-main:N ships it, and dnf (unlike rpm-ostree) would then
+# satisfy the kmod's kernel-uname-r by replacing the base kernel with one the
+# base never built an initramfs for. Excluded, the install fails until the two
+# agree again, which is the outcome wanted.
 # The kmod's kernel-uname-r requirement only proves the RPM installed; the
-# checks after it prove the module the image boots is built for the image's one
-# kernel (vermagic) and that modules-load.d can find it (modules.dep), since a
-# mismatch otherwise surfaces only as a missing camera after a reboot.
+# checks after it prove the module the image boots is built for the base
+# image's one kernel (vermagic) and that modules-load.d can find it
+# (modules.dep), since a mismatch otherwise surfaces only as a missing camera
+# after a reboot.
 COPY --from=akmods /rpms/ /tmp/akmods-rpms/
-RUN dnf -y install \
+RUN KVER=$(rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}\n' kernel-core) && \
+    test "$(printf '%s\n' "${KVER}" | wc -l)" -eq 1 && \
+    dnf -y install --exclude='kernel*' \
       /tmp/akmods-rpms/kmods/kmod-v4l2loopback*.rpm \
       /tmp/akmods-rpms/common/v4l2loopback-*.rpm && \
     dnf clean all && \
     rm -rf /tmp/akmods-rpms && \
-    KVER=$(rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}\n' kernel-core) && \
-    test "$(printf '%s\n' "${KVER}" | wc -l)" -eq 1 && \
+    test "$(rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}\n' kernel-core)" = "${KVER}" && \
     KO=$(find "/usr/lib/modules/${KVER}/extra" -name 'v4l2loopback.ko*') && \
     test -n "${KO}" && \
     modinfo -F vermagic "${KO}" | grep -q "^${KVER} " && \

@@ -1,5 +1,5 @@
 ARG BASE_IMAGE="ghcr.io/ublue-os/silverblue-main"
-ARG FEDORA_MAJOR_VERSION="44"
+ARG FEDORA_MAJOR_VERSION="45"
 
 # ── clipse builder ────────────────────────────────────────────────────────────
 # clipse 1.2.1 checks free space on "/", which composefs always reports as full,
@@ -163,7 +163,7 @@ RUN SUBTUI_VERSION=2.14.3 && \
 
 # yubikey-touch-detector — desktop notification when the YubiKey blinks for a
 # touch (gpg sign/decrypt, ssh, u2f); no Fedora RPM. Pinned rather than latest:
-# the upstream binary links libgpgme.so.11, which Fedora 44 only ships via
+# the upstream binary links libgpgme.so.11, which Fedora (44 and 45) only ships via
 # compat-gpgme124, so a new release could change the soname under us.
 RUN YTD_VERSION=1.15.0 && \
     rpm-ostree install compat-gpgme124 && \
@@ -306,7 +306,7 @@ RUN source /etc/os-release && \
     BUOY_VERSION=1.0.0-rc.3 && \
     BUOY_RELEASE=1 && \
     BUOY_RPM="buoy-wm-${BUOY_VERSION}-${BUOY_RELEASE}.fc${VERSION_ID}.$(uname -m).rpm" && \
-    BUOY_SHA256=8ac3a6eddf46c756f40786371ce765868017f6aee21ca4860918a416e557a75e && \
+    BUOY_SHA256=956fa64155d671b08a26579376a4471f59da7d27385e3771b39e61c55d3448d7 && \
     curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 -o "/tmp/${BUOY_RPM}" \
       "https://github.com/nkbooth/buoy-wm/releases/download/v${BUOY_VERSION}/${BUOY_RPM}" && \
     echo "${BUOY_SHA256}  /tmp/${BUOY_RPM}" | sha256sum -c - && \

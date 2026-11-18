@@ -1,0 +1,13 @@
+# Vendored from github.com/nkbooth/homelab-backup systemd/homelab-backup.timer @ eb6db1c; edit there first.
+[Unit]
+Description=Daily offsite DR backup
+
+[Timer]
+OnCalendar=*-*-* 03:30
+# Spread hosts out so they don't all upload at once.
+RandomizedDelaySec=1h
+# Catch up after the laptop was asleep or a host was down at the scheduled time.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

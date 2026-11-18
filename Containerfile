@@ -161,6 +161,21 @@ RUN YTD_VERSION=1.15.0 && \
     install -m 755 yubikey-touch-detector-x86_64-linux-gnu /usr/bin/yubikey-touch-detector && \
     rm yubikey-touch-detector-x86_64-linux-gnu SHA256SUMS
 
+# ── Offsite DR backup (homelab-backup) ────────────────────────────────────────
+# rustic backs the laptop up to Backblaze B2 from homelab-backup.timer. Pinned
+# by version and digest, in lockstep with the homelab-backup repo, because a
+# backup tool upgrade should be a deliberate edit. The units, homelab-backup-pre
+# and dotnet-bin-globs are vendored under config/files; the secret profile
+# (/etc/rustic/backup.toml) is deployed per host and never baked in.
+RUN RUSTIC_VERSION=0.11.4 && \
+    RUSTIC_SHA256=628b26785f3787fa1d52e61b3289493f483230a1ed6e86a84ae9c76d7a41a81e && \
+    curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 -o /tmp/rustic.tgz \
+      "https://github.com/rustic-rs/rustic/releases/download/v${RUSTIC_VERSION}/rustic-v${RUSTIC_VERSION}-x86_64-unknown-linux-musl.tar.gz" && \
+    echo "${RUSTIC_SHA256}  /tmp/rustic.tgz" | sha256sum -c - && \
+    tar -xzf /tmp/rustic.tgz -C /usr/bin rustic && \
+    rm /tmp/rustic.tgz && \
+    test "$(/usr/bin/rustic --version)" = "rustic v${RUSTIC_VERSION}"
+
 # ── Fonts ─────────────────────────────────────────────────────────────────────
 RUN rpm-ostree install \
     adwaita-fonts-all \
@@ -295,11 +310,16 @@ RUN jq '.transports.docker["ghcr.io/nkbooth/framework"] = [{"type": "sigstoreSig
 # ConditionNeedsUpdate=/etc stays false); onepassword-sysusers applies just the
 # 1Password groups on every boot instead.
 # clipse's listeners are this image's own units, so nothing enables them but us.
+# homelab-backup.timer fails loudly until /etc/rustic/backup.toml is deployed,
+# which is intended: a silently skipped backup is worse than a red unit.
 RUN systemctl --global enable yubikey-touch-detector.service && \
     systemctl --global enable clipse-text.service clipse-image.service && \
     systemctl --global enable brew-upgrade.timer && \
     systemctl --global enable kanshi.service && \
-    systemctl enable onepassword-sysusers.service
+    systemctl enable onepassword-sysusers.service && \
+    systemctl enable homelab-backup.timer && \
+    test -x /usr/bin/homelab-backup-pre && \
+    test -x /usr/libexec/homelab-backup/dotnet-bin-globs
 
 # ostree container commit is deprecated; lint once here so bootc-incompatible
 # state fails the build, not the boot. The rm drops dnf/rpm leftovers that would

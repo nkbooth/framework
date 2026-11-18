@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Vendored from github.com/nkbooth/homelab-backup bin/dotnet-bin-globs @ eb6db1c; edit there first.
+# Print rustic exclude globs for .NET bin/ directories under a root.
+#
+# Usage: dotnet-bin-globs ROOT
+#
+# rustic's --exclude-if-present covers every other kind of build output via a
+# marker file, but bin/ has none: it is only build output when a .csproj,
+# .fsproj or .vbproj sits beside it. A bare bin/ (e.g. scripts) is kept.
+set -euo pipefail
+
+usage() {
+  echo "usage: dotnet-bin-globs ROOT" >&2
+  exit 2
+}
+
+escape_glob() {
+  sed 's/[][\\*?{}]/\\&/g'
+}
+
+project_dirs() {
+  find "$1" \( -name node_modules -o -name .git \) -prune -o \
+    -type f \( -name '*.csproj' -o -name '*.fsproj' -o -name '*.vbproj' \) -printf '%h\0' \
+    | LC_ALL=C sort -zu
+}
+
+main() {
+  [ "$#" -eq 1 ] || usage
+  [ -d "$1" ] || {
+    echo "dotnet-bin-globs: $1: not a directory" >&2
+    exit 1
+  }
+  local root dir
+  root=$(realpath -- "$1")
+  while IFS= read -r -d '' dir; do
+    if [ -d "$dir/bin" ]; then
+      printf '!%s\n' "$(printf '%s/bin' "$dir" | escape_glob)"
+    fi
+  done < <(project_dirs "$root")
+}
+
+main "$@"

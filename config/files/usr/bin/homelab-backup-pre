@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# Vendored from github.com/nkbooth/homelab-backup bin/homelab-backup-pre @ eb6db1c; edit there first.
+# Run a host's pre-backup hooks (database dumps, exclude lists) in lexical order.
+#
+# Usage: run-pre-backup HOOK_DIR
+#
+# Stops at the first failing hook: a backup without a fresh dump would look
+# successful while silently carrying stale data.
+set -euo pipefail
+
+usage() {
+  echo "usage: run-pre-backup HOOK_DIR" >&2
+  exit 2
+}
+
+main() {
+  [ "$#" -eq 1 ] || usage
+  local dir=$1 hook status
+  [ -d "$dir" ] || return 0
+  for hook in "$dir"/*; do
+    if [ ! -f "$hook" ] || [ ! -x "$hook" ]; then
+      continue
+    fi
+    echo "pre-backup: running $(basename "$hook")"
+    status=0
+    "$hook" || status=$?
+    if [ "$status" -ne 0 ]; then
+      echo "pre-backup: $(basename "$hook") failed with status $status" >&2
+      exit "$status"
+    fi
+  done
+}
+
+main "$@"

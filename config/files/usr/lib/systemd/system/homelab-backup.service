@@ -1,0 +1,20 @@
+# Vendored from github.com/nkbooth/homelab-backup systemd/homelab-backup.service @ eb6db1c; edit there first.
+[Unit]
+Description=Offsite DR backup (rustic to Backblaze B2)
+Documentation=https://github.com/nkbooth/homelab-backup
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+# Profile /etc/rustic/backup.toml is rendered by bin/render-profile.
+Environment=XDG_CACHE_HOME=/var/cache
+CacheDirectory=rustic
+RuntimeDirectory=homelab-backup
+# Bare names: systemd searches /usr/local/bin then /usr/bin, so the same unit
+# works for image-baked installs and direct /usr/local installs.
+ExecStartPre=homelab-backup-pre /etc/homelab-backup/pre-backup.d
+ExecStart=rustic -P backup backup
+Nice=19
+IOSchedulingClass=idle
+PrivateTmp=yes
